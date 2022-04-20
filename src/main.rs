@@ -1,25 +1,31 @@
 use once_cell::sync::Lazy;
 use std::env;
-use tiberius::time::chrono;
+
 use tiberius::Uuid;
-// use tokio::net::TcpStream;
-// use tokio_util::compat::TokioAsyncWriteCompatExt;
 use tiberius_derive::FromRow;
-#[derive(FromRow, Debug)]
+
+#[derive(FromRow, Debug, Clone, PartialEq)]
+#[tiberius_derive(owned)]
+struct TestRow {
+    pub id: Uuid,
+    pub FirstName: String,
+    pub LastName: String,
+    pub dec_col: bigdecimal,
+    pub num_col: bigdecimal,
+    pub dbl_col: f64,
+    pub createdate: chrono::NaiveDateTime,
+}
+
+#[derive(FromRow, Debug, Clone, PartialEq)]
 #[tiberius_derive(owned)]
 struct TestRowNullable {
     pub id: Uuid,
     pub FirstName: Option<String>,
     pub LastName: Option<String>,
-    pub dec_col: Option<f32>,
-    pub num_col: Option<f32>,
+    pub dec_col: Option<bigdecimal>,
+    pub num_col: Option<bigdecimal>,
     pub dbl_col: Option<f64>,
-    pub createdate: chrono::NaiveDateTime,
-    // pub small_int_row: i16,
-    // pub bit_row: bool,
-    // pub float_row: f32,
-    // pub double_row: f64,
-    // pub real_row: f32,
+    pub createdate: Option<chrono::NaiveDateTime>,
 }
 
 static CONN_STR: Lazy<String> = Lazy::new(|| {
@@ -35,7 +41,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     use bb8::Pool;
     use bb8_tiberius::ConnectionManager;
-    use tiberius::Uuid;
 
     let mgr = ConnectionManager::build(CONN_STR.as_str())?;
 
@@ -60,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rows = rows
         .into_iter()
-        .map(TestRowNullable::from_row)
+        .map(TestRow::from_row)
         .collect::<Result<Vec<_>, _>>()?;
 
     println!("{:?}", rows);
