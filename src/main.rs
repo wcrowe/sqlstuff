@@ -7,13 +7,13 @@ use tiberius::Uuid;
 use tiberius_derive::FromRow;
 #[derive(FromRow, Debug)]
 #[tiberius_derive(owned)]
-struct TestRow<'a> {
+struct TestRowNullable {
     pub id: Uuid,
-    pub FirstName: &'a str,
-    pub LastName: &'a str,
-    pub dec_col: f64,
-    pub num_col: f64,
-    pub dbl_col: f64,
+    pub FirstName: Option<String>,
+    pub LastName: Option<String>,
+    pub dec_col: Option<f32>,
+    pub num_col: Option<f32>,
+    pub dbl_col: Option<f64>,
     pub createdate: chrono::NaiveDateTime,
     // pub small_int_row: i16,
     // pub bit_row: bool,
@@ -59,8 +59,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     let rows = rows
-        .iter()
-        .map(TestRow::from_row)
+        .into_iter()
+        .map(TestRowNullable::from_row)
         .collect::<Result<Vec<_>, _>>()?;
 
     println!("{:?}", rows);
