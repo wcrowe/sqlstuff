@@ -841,6 +841,7 @@ dependencies = [
  "anyhow",
  "bb8",
  "bb8-tiberius",
+ "chrono",
  "futures",
  "once_cell",
  "tiberius 0.8.0",
