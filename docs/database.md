@@ -33,6 +33,7 @@ GO
             [FloatRow] [float](24) NULL,
             [DoubleRow] [float](53) NULL,
             [RealRow] [real] NULL,
+            [ImageRow] [image] NULL
         );
 
  INSERT INTO [TestRow] 
@@ -45,6 +46,20 @@ GO
     VALUES 
     (2, 'first', 'last',NEWID(), 99999999999999229, Getdate(), 4, 4, 15.123123125, 299.1231231258, 420.00)
 
+/**********************  Linqpad *********************************/
+
+
+
+
+
+
+
+
+
+
+
+
+/**********************  Rust  utility *********************************/
 mod util;
 use crate::util::connect_localhost;
 
@@ -71,6 +86,7 @@ async fn test_database_up() {
             [FloatRow] [float](24) NULL,
             [DoubleRow] [float](53) NULL,
             [RealRow] [real] NULL,
+            [ImageRow] [image] NULL,
         );
     
         "#;

@@ -1,8 +1,8 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
+use chrono::NaiveDateTime;
 use once_cell::sync::Lazy;
 use std::env;
-use chrono::NaiveDateTime;
 use tiberius::Uuid;
 use tiberius_derive::FromRow;
 
@@ -20,6 +20,7 @@ struct TestRow {
     pub float_row: f32,
     pub double_row: f64,
     pub real_row: f32,
+    pub image_row: Vec<u8>,
 }
 
 #[allow(non_snake_case)]
@@ -37,6 +38,7 @@ struct TestRowNullable {
     pub FloatRow: Option<f32>,
     pub DoubleRow: Option<f64>, // borked. Breaks because tiberius inteprets a a nullable float field as F32(None)
     pub RealRow: Option<f32>,
+    pub ImageRow: Option<Vec<u8>>,
 }
 
 static CONN_STR: Lazy<String> = Lazy::new(|| {
@@ -48,19 +50,17 @@ static CONN_STR: Lazy<String> = Lazy::new(|| {
 #[cfg(not(all(windows, feature = "sql-browser-tokio")))]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-  
     use bb8::Pool;
     use bb8_tiberius::ConnectionManager;
 
     let query = r"
     SELECT
-        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[DoubleRow],[RealRow]
+        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[DoubleRow],[RealRow],[ImageRow]
     FROM 
         [Work].[dbo].[TestRow]
     WHERE VarCharRow is not null
     ORDER BY ID
         ";
-
 
     let mgr = ConnectionManager::build(CONN_STR.as_str())?;
 
@@ -68,18 +68,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut conn = pool.get().await?;
 
-    let rows = conn
-        .simple_query(query)
-        .await?
-        .into_first_result()
-        .await?;
+    let rows = conn.simple_query(query).await?.into_first_result().await?;
 
     let rows = rows
         .into_iter()
         .map(TestRowNullable::from_row)
         .collect::<Result<Vec<_>, _>>()?;
 
-    println!("{:?}", rows);
+    println!("{:#?}", rows);
 
     Ok(())
 }
