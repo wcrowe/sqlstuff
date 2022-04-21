@@ -1,0 +1,9 @@
+For Linux
+curl -L https://github.com/rust-lang/rust-analyzer/releases/download/nightly/rust-analyzer-x86_64-unknown-linux-gnu.gz  | gunzip -c - > ~/.local/bin/rust-analyzer && chmod +x ~/.local/bin/rust-analyzer
+
+For Windows
+curl -L https://github.com/rust-lang/rust-analyzer/releases/download/nightly/rust-analyzer-x86_64-pc-windows-msvc.gz | gunzip -c - > %USERPROFILE%\.cargo\bin\rust-analyze.exe
+
+
+ curl -L https://github.com/rust-lang/rust-analyzer/releases/download/nightly/rust-analyzer-x86_64-pc-windows-msvc.gz  -o rust-analyzer-msvc.gz
+7z x rust-analyzer-msvc.gz  -o"%USERPROFILE%\.cargo\bin\rust-analyze.exe"
