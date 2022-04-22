@@ -1,0 +1,136 @@
+use chrono::{Local, NaiveDateTime};
+use std::error::Error;
+use tiberius::{Client, Config, FromSqlOwned, SqlBrowser, Uuid};
+use tokio::net::TcpStream;
+use tokio_util::compat::TokioAsyncWriteCompatExt;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let config = Config::from_ado_string("Server=localhost;Database=testdb;TrustServerCertificate=True")?;
+    let tcp = TcpStream::connect_named(&config).await?;
+    tcp.set_nodelay(true)?;
+    let mut db = Client::connect(config, tcp.compat_write()).await?;
+
+    let mut measures1 = Vec::new();
+    let mut measures2 = Vec::new();
+
+    for i in 0..10001 {
+        {
+            let result = db
+                .simple_query("select [UserKey], [UserName], [Name], [Email], [Active], [Password], [CreatedOn], [UpdatedOn] from [User]")
+                .await?
+                .into_first_result()
+                .await?;
+
+            let result_iter = result.into_iter();
+
+            let measure_start = Local::now();
+
+            let _users: Vec<User> = result_iter
+                .map(|row| {
+                    let mut col = row.into_iter();
+
+                    let user_key = Uuid::from_sql_owned(col.next().unwrap()).unwrap().unwrap();
+                    let user_name = String::from_sql_owned(col.next().unwrap()).unwrap().unwrap();
+                    let name = String::from_sql_owned(col.next().unwrap()).unwrap();
+                    let email = String::from_sql_owned(col.next().unwrap()).unwrap();
+                    let active = bool::from_sql_owned(col.next().unwrap()).unwrap().unwrap();
+                    let password = Vec::<u8>::from_sql_owned(col.next().unwrap()).unwrap();
+                    let created_on = NaiveDateTime::from_sql_owned(col.next().unwrap()).unwrap().unwrap();
+                    let updated_on = NaiveDateTime::from_sql_owned(col.next().unwrap()).unwrap().unwrap();
+
+                    User {
+                        user_key,
+                        user_name,
+                        name,
+                        email,
+                        active,
+                        password,
+                        created_on,
+                        updated_on,
+                    }
+                })
+                .collect();
+
+            let measure_end = Local::now();
+            if i > 0 {
+                measures1.push(measure_end - measure_start);
+            }
+        }
+
+        {
+            let result = db
+                .simple_query("select [UserKey], [UserName], [Name], [Email], [Active], [Password], [CreatedOn], [UpdatedOn] from [User]")
+                .await?
+                .into_first_result()
+                .await?;
+
+            let result_iter = result.iter();
+
+            let measure_start = Local::now();
+
+            let _users: Vec<User> = result_iter
+                .map(|row| {
+                    let user_key = row.get(0).unwrap();
+                    let user_name = row.get::<&str, _>(1).unwrap().to_string();
+                    let name = match row.get::<&str, _>(2) {
+                        None => None,
+                        Some(s) => Some(s.to_string()),
+                    };
+                    let email = match row.get::<&str, _>(3) {
+                        None => None,
+                        Some(s) => Some(s.to_string()),
+                    };
+                    let active = row.get(4).unwrap();
+                    let password = match row.get::<&[u8], _>(5) {
+                        None => None,
+                        Some(s) => Some(s.to_vec()),
+                    };
+                    let created_on = row.get(6).unwrap();
+                    let updated_on = row.get(7).unwrap();
+
+                    User {
+                        user_key,
+                        user_name,
+                        name,
+                        email,
+                        active,
+                        password,
+                        created_on,
+                        updated_on,
+                    }
+                })
+                .collect();
+
+            let measure_end = Local::now();
+            if i > 0 {
+                measures2.push(measure_end - measure_start);
+            }
+        }
+    }
+
+    let min1 = measures1.iter().map(|m| m.num_microseconds().unwrap()).min().unwrap() as f64 / 1000.0;
+    let max1 = measures1.iter().map(|m| m.num_microseconds().unwrap()).max().unwrap() as f64 / 1000.0;
+    let avg1 = measures1.iter().map(|m| m.num_microseconds().unwrap()).sum::<i64>() as f64 / measures1.len() as f64 / 1000.0;
+
+    let min2 = measures2.iter().map(|m| m.num_microseconds().unwrap()).min().unwrap() as f64 / 1000.0;
+    let max2 = measures2.iter().map(|m| m.num_microseconds().unwrap()).max().unwrap() as f64 / 1000.0;
+    let avg2 = measures2.iter().map(|m| m.num_microseconds().unwrap()).sum::<i64>() as f64 / measures2.len() as f64 / 1000.0;
+
+    println!("Measure 1 - Min: {:.3}ms, Max: {:.3}ms, Avg: {:.3}ms", min1, max1, avg1);
+    println!("Measure 2 - Min: {:.3}ms, Max: {:.3}ms, Avg: {:.3}ms", min2, max2, avg2);
+
+    Ok(())
+}
+
+#[derive(Debug)]
+pub struct User {
+    pub user_key: Uuid,
+    pub user_name: String,
+    pub name: Option<String>,
+    pub email: Option<String>,
+    pub active: bool,
+    pub password: Option<Vec<u8>>,
+    pub created_on: NaiveDateTime,
+    pub updated_on: NaiveDateTime,
+}
