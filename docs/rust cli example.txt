@@ -28,13 +28,15 @@ use cli_table::{format::Justify, print_stdout, Cell, Style, Table, WithTitle};
 struct TestRow {
     #[table(title = "ID", justify = "Justify::Right")]
     pub id: Uuid,
+    #[table(title = "Template Name")]
     pub application_template_name: String,
+    #[table(title = "Compile Date")]
     pub compiled_on: chrono::NaiveDateTime,
 }
 
 static CONN_STR: Lazy<String> = Lazy::new(|| {
     env::var("TIBERIUS_TEST_CONNECTION_STRING").unwrap_or_else(|_| {
-        "server=tcp:<servername>,1433;Integrated Security=True;TrustServerCertificate=true;Pooling=True;".to_owned()
+        "server=tcp:<servername>,<port>;Integrated Security=True;TrustServerCertificate=true;Pooling=True;".to_owned()
     })
 });
 
@@ -66,11 +68,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(TestRow::from_row)
             .collect::<Result<Vec<_>, _>>()?;
     
-            assert!(print_stdout(results.with_title()).is_ok());
+            print_stdout(results.with_title())?;
+
+            //assert!(print_stdout(results.with_title()).is_ok());
        
 //let table_display = results.with_title();
 
-//println!("{:?}", table_display);
+   // println!("{}", results.with_title());
 
         Ok(())
 }
